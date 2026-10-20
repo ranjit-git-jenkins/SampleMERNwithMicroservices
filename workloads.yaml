@@ -1,0 +1,67 @@
+{{- range $name, $cfg := dict "frontend" .Values.frontend "hello" .Values.hello "profile" .Values.profile }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+spec:
+  replicas: {{ $cfg.replicas }}
+  selector:
+    matchLabels: {app: {{ $name }}}
+  template:
+    metadata:
+      labels: {app: {{ $name }}}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: "{{ $.Values.images.registry }}/mern-{{ $name }}:{{ $.Values.images.tag }}"
+          imagePullPolicy: Always
+          ports: [{containerPort: {{ $cfg.port }} }]
+          {{- if eq $name "profile" }}
+          env:
+            - name: PORT
+              value: "{{ $cfg.port }}"
+            - name: MONGO_URL
+              value: "mongodb://mongo:27017/mern"
+          {{- else }}
+          env:
+            - name: PORT
+              value: "{{ $cfg.port }}"
+          {{- end }}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+spec:
+  type: {{ if eq $name "frontend" }}LoadBalancer{{ else }}ClusterIP{{ end }}
+  selector: {app: {{ $name }}}
+  ports:
+    - port: {{ $cfg.port }}
+      targetPort: {{ $cfg.port }}
+---
+{{- end }}
+{{- if .Values.mongo.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: mongo}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: mongo}}
+  template:
+    metadata: {labels: {app: mongo}}
+    spec:
+      containers:
+        - name: mongo
+          image: {{ .Values.mongo.image }}
+          ports: [{containerPort: 27017}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: mongo}
+spec:
+  selector: {app: mongo}
+  ports: [{port: 27017, targetPort: 27017}]
+{{- end }}
