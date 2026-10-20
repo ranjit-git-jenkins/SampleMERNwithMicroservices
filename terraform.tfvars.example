@@ -1,0 +1,4 @@
+subscription_id = "REPLACE-WITH-SUBSCRIPTION-ID"
+ssh_public_key = "ssh-rsa REPLACE-WITH-YOUR-PUBLIC-KEY"
+prefix = "mernaksdemo123"
+location = "centralindia"
